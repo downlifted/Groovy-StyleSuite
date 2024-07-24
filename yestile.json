@@ -23,12 +23,12 @@
     },
     "3": {
         "inputs": {
-            "seed": 262652051287822,
-            "steps": 27,
+            "seed": 800227538775189,
+            "steps": 3,
             "cfg": 8,
             "sampler_name": "dpmpp_2m_sde_gpu",
             "scheduler": "karras",
-            "denoise": 0.85,
+            "denoise": 0.72,
             "model": [
                 "4",
                 0
@@ -55,8 +55,8 @@
         "inputs": {
             "weight": 1,
             "start_at": 0,
-            "end_at": 0.8,
-            "weight_type": "style transfer",
+            "end_at": 0.9,
+            "weight_type": "standard",
             "model": [
                 "1",
                 0
@@ -77,7 +77,7 @@
     },
     "5": {
         "inputs": {
-            "image": "C:\\Users\\bewiz\\AppData\\Local\\Temp\\gradio\\161bc30d3dc2dc6118aff341c6f297c593bb4f0d\\_5d268474-cda5-4f77-8404-585bc6b2b72d.jpg",
+            "image": "C:\\Users\\bewiz\\AppData\\Local\\Temp\\gradio\\f54d49516a7bbcff0ca18ce81fa45f45997f90ad\\_524cb6bd-4ba2-4041-97a5-985f67057967.jpg",
             "upload": "image"
         },
         "class_type": "LoadImage",
@@ -87,7 +87,7 @@
     },
     "6": {
         "inputs": {
-            "text": "\nThe forest was vast and verdant, with towering trees that seemed to reach out to the skies. In the center of the woodland stood a magnificent, gnarled tree, its age evident in the twisted branches and bark that adorned its ancient figure. A single, ethereal beam of light spilled through the canopy, dancing upon the forest floor, casting deep shadows and highlighting the intricate details of the foliage. The tranquil serenity of the scene was palpable, invoking a sense of awe and wonder in any who ventured into the heart of the mystical forest. Style inspired by Justin Gerard, Michael Whelan. Modifiers: cinematic, panfuturism, cubism, art nouveau.",
+            "text": "\nA twisted, barren wasteland stretches across the horizon, the air filled with a thick, putrid stench that permeates everything. Puddles of dark, murky water gather in the midst of the desolate landscape, reflecting the bleakness of the surroundings. In the distance, a looming mountain range casts an ominous shadow, its jagged peaks shrouded in a dense fog. Style inspired by Tom Thomson, Zdzis\u0142aw Beksi\u0144ski. Modifiers: Sakura blossoms, bioluminescent, photorealistic, grotesque.",
             "clip": [
                 "2",
                 1
@@ -172,7 +172,7 @@
     },
     "19": {
         "inputs": {
-            "preprocessor": "Zoe-DepthMapPreprocessor",
+            "preprocessor": "MiDaS-DepthMapPreprocessor",
             "resolution": 512,
             "image": [
                 "22",
@@ -199,7 +199,7 @@
     },
     "21": {
         "inputs": {
-            "image": "C:\\Users\\bewiz\\AppData\\Local\\Temp\\gradio\\99430f825e667aef405eab9d0baa2b2d6109c3d5\\2.png",
+            "image": "C:\\Users\\bewiz\\AppData\\Local\\Temp\\gradio\\76bc31785effe0fa1ab0817893ff1f2e9a0dad25\\1.jpg",
             "upload": "image"
         },
         "class_type": "LoadImage",
@@ -212,7 +212,7 @@
             "width": 1024,
             "height": 1024,
             "interpolation": "nearest",
-            "keep_proportion": true,
+            "method": "fill / crop",
             "condition": "always",
             "multiple_of": 0,
             "image": [
@@ -222,7 +222,7 @@
         },
         "class_type": "ImageResize+",
         "_meta": {
-            "title": "\u00f0\u0178\u201d\u00a7 Image Resize"
+            "title": "\u00a0Image Resize"
         }
     },
     "23": {
@@ -296,7 +296,7 @@
         },
         "class_type": "AIO_Preprocessor",
         "_meta": {
-            "title": "AIO Tile"
+            "title": "Tile"
         }
     },
     "34": {
@@ -309,6 +309,21 @@
         "class_type": "PreviewImage",
         "_meta": {
             "title": "Preview Image"
+        }
+    },
+    "38": {
+        "inputs": {
+            "mode": "always",
+            "volume": 1,
+            "file": "notify.mp3",
+            "any": [
+                "3",
+                0
+            ]
+        },
+        "class_type": "PlaySound|pysssss",
+        "_meta": {
+            "title": "PlaySound \ud83d\udc0d"
         }
     }
 }

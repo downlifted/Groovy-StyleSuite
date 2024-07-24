@@ -1,5 +1,3 @@
-# utilities.py
-
 import os
 import json
 import random
@@ -7,20 +5,29 @@ import requests
 import time
 import zipfile
 import shutil
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
+from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
+import torch
 from config import API_KEYS, headers
 
 def read_workflow(file_path):
-    """Read the workflow.json file."""
+    """Read the workflow JSON file."""
     print(f"Reading workflow from {file_path}")
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         workflow = json.load(file)
     return workflow
 
-def update_workflow(workflow, style_image_path, structure_image_path, prompt, negative_prompt, denoise_value, depth_processor, depth_strength, ksampler_steps, use_tilenet, model_name):
+def add_placeholder_image(output_dir):
+    placeholder_image_path = os.path.join(output_dir, "placeholder.png")
+    if not os.path.exists(placeholder_image_path):
+        # Create or copy a placeholder image to the directory
+        Image.new('RGB', (512, 512), color=(73, 109, 137)).save(placeholder_image_path)
+    return placeholder_image_path
+
+def update_workflow(workflow, style_image_path, structure_image_path, prompt, negative_prompt, denoise_value, depth_processor, depth_strength, ksampler_steps, use_tilenet, model_name, username):
     """Update the workflow with the new images, prompts, and denoising value."""
     print(f"Updating workflow with style image: {style_image_path}, structure image: {structure_image_path}, prompt: {prompt}, and denoise value: {denoise_value}")
-    
+
     for node_key, node in workflow.items():
         if isinstance(node, dict) and 'inputs' in node:
             if node.get('_meta', {}).get('title') == 'Load Style':
@@ -46,52 +53,51 @@ def update_workflow(workflow, style_image_path, structure_image_path, prompt, ne
                 node['inputs']['strength'] = depth_strength  # Set the depth map strength
                 print(f"Updated depth map preprocessor in node {node_key}: {node['inputs']['preprocessor']}")
                 print(f"Updated depth map strength in node {node_key}: {node['inputs']['strength']}")
-            elif node.get('_meta', {}).get('title') == 'AIO Tile':
+            elif node.get('_meta', {}).get('title') == 'Tile':
                 node['inputs']['preprocessor'] = "TilePreprocessor"  # Always set to TilePreprocessor
                 node['inputs']['strength'] = depth_strength  # Set the depth map strength for Tile
                 print(f"Updated Tile depth map preprocessor in node {node_key}: {node['inputs']['preprocessor']}")
                 print(f"Updated Tile depth map strength in node {node_key}: {node['inputs']['strength']}")
-            elif node.get('_meta', {}).get('title') == 'Tile Control Net':
-                node['inputs']['enabled'] = use_tilenet  # Enable or disable the tile control net
-                print(f"Updated Tile Control Net in node {node_key} to {'enabled' if use_tilenet else 'disabled'}")
+            elif node.get('_meta', {}).get('title') == 'Save Image':
+                node['inputs']['filename_prefix'] = f"{username}_ComfyUI"
+                print(f"Updated Save Image filename prefix in node {node_key}: {node['inputs']['filename_prefix']}")
     return workflow
 
 def write_workflow(workflow, file_path):
-    """Write the updated workflow back to workflow.json."""
+    """Write the updated workflow back to the workflow JSON file."""
     print(f"Writing updated workflow to {file_path}")
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(workflow, file, indent=4)
 
 def image_to_text(image_path):
     print(f"Generating text from image: {image_path}")
-    salesforce_blip = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
-    API_URL = salesforce_blip
+    
+    model_name = "nlpconnect/vit-gpt2-image-captioning"
+    model = VisionEncoderDecoderModel.from_pretrained(model_name)
+    processor = ViTImageProcessor.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    
+    image = Image.open(image_path).convert("RGB")
+    pixel_values = processor(images=image, return_tensors="pt").pixel_values.to(device)
+    
+    gen_kwargs = {"max_length": 200, "num_beams": 4}
+    output_ids = model.generate(pixel_values, **gen_kwargs)
+    
+    generated_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
+    print(f"Generated text: {generated_text}")
+    return generated_text
 
-    with open(image_path, "rb") as f:
-        data = f.read()
-
-    retries = 3
-    for attempt in range(retries):
-        for key in API_KEYS:
-            headers["Authorization"] = f"Bearer {key}"
-            response = requests.post(API_URL, headers=headers, data=data)
-            try:
-                response_json = response.json()
-                generated_text = response_json[0]["generated_text"]
-                print(f"Generated text: {generated_text}")
-                return generated_text
-            except (requests.exceptions.JSONDecodeError, IndexError, KeyError) as e:
-                print(f"Attempt {attempt + 1} failed with key {key}: {e}")
-    return "Image identification failed"
-
-def generate_prompt(input_text, selected_artists, selected_modifiers, custom_text, retries=5):
+def generate_prompt(input_text, selected_artists, selected_modifiers, custom_text):
     if input_text.startswith("Error"):
         return generate_fallback_prompt(selected_artists, selected_modifiers, custom_text)
 
     falcon_7b = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
     API_URL = falcon_7b
 
-    for attempt in range(retries):
+    while True:
         prompt = f"Create a unique, highly detailed, and imaginative AI art prompt based on the context of the photo: {input_text}. Focus on landscapes and scenery, avoiding descriptions of humans or animals. Ensure the description is vivid, compelling, and evokes strong visual imagery."
         if custom_text:
             prompt += f" Theme: {custom_text}."
@@ -110,10 +116,12 @@ def generate_prompt(input_text, selected_artists, selected_modifiers, custom_tex
             }
         }
 
+        success = False
         for key in API_KEYS:
             headers["Authorization"] = f"Bearer {key}"
-            response = requests.post(API_URL, headers=headers, json=payload)
             try:
+                response = requests.post(API_URL, headers=headers, json=payload)
+                response.raise_for_status()
                 response_json = response.json()
                 generated_text = response_json[0]["generated_text"]
                 if "As the AI language model" not in generated_text and "I am unable to render visual data" not in generated_text:
@@ -124,10 +132,15 @@ def generate_prompt(input_text, selected_artists, selected_modifiers, custom_tex
                     generated_text += f" Style inspired by {artist_list}. Modifiers: {modifier_list}."
 
                     return generated_text
-            except (requests.exceptions.JSONDecodeError, IndexError, KeyError) as e:
-                print(f"Attempt {attempt + 1} failed with key {key}: {e}")
+                success = True
+                break  # Exit the loop if successful
+            except (requests.exceptions.RequestException, KeyError, IndexError) as e:
+                print(f"Attempt with key {key} failed: {e}")
 
-    return generate_fallback_prompt(selected_artists, selected_modifiers, custom_text)
+        if not success:
+            print("All API keys failed, retrying after fallback.")
+            time.sleep(2)  # Adding a small delay before retrying
+            return generate_fallback_prompt(selected_artists, selected_modifiers, custom_text)
 
 def generate_fallback_prompt(selected_artists, selected_modifiers, custom_text):
     fallback_prompt = "Create a unique, highly detailed, and imaginative landscape prompt."
