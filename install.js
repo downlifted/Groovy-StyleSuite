@@ -43,7 +43,7 @@ module.exports = async (kernel) => {
         method: "shell.run",
         params: {
           message: [
-            `git clone --depth 1 -b main https://github.com/banodoco/Dough.git ${project_dir}`,
+            `git clone https://github.com/downlifted/Groovy-StyleSuite app`,
           ],
         },
       },
