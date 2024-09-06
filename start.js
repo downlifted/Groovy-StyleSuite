@@ -1,88 +1,66 @@
 const path = require('path');
 const { execSync } = require('child_process');
-const fs = require('fs-extra');  // fs-extra allows copying with merge
-const { project_dir } = require('./constants');
+const fs = require('fs');
+const os = require('os');
+const { virtual_env, project_dir } = require("./constants");
 
-// Function to check if the folder already has files (meaning it's cloned)
-function isRepoCloned(folderPath) {
-    try {
-        const files = fs.readdirSync(folderPath);
-        return files.length > 0;
-    } catch (error) {
-        return false; // If folder doesn't exist or an error occurs, assume it's not cloned
-    }
+// Helper function to check if a directory exists
+function directoryExists(directory) {
+  return fs.existsSync(directory);
 }
 
-// Clone repository to a temporary location if not already cloned
-function cloneRepoTemp(repoUrl, tempFolder) {
-    const tempClonePath = path.resolve(project_dir, tempFolder);
-    
-    if (!isRepoCloned(tempClonePath)) {
-        try {
-            console.log(`Cloning ${repoUrl} to temp location...`);
-            execSync(`git clone ${repoUrl} ${tempClonePath}`, { stdio: 'inherit' });
-            console.log(`Repository ${repoUrl} cloned successfully to ${tempClonePath}.`);
-        } catch (error) {
-            console.error(`Failed to clone ${repoUrl}:`, error.message || error);
-        }
-    } else {
-        console.log(`Temporary folder ${tempClonePath} already contains files. Skipping clone.`);
-    }
+// Helper function to move directory contents
+function moveContents(sourceDir, targetDir) {
+  const files = fs.readdirSync(sourceDir);
+  files.forEach(file => {
+    const srcPath = path.join(sourceDir, file);
+    const destPath = path.join(targetDir, file);
+    fs.renameSync(srcPath, destPath);
+  });
 }
 
-// Copy contents of the cloned repo to the existing Groovy folder
-function copyToGroovyFolder(tempFolder) {
-    const tempClonePath = path.resolve(project_dir, tempFolder);
-    const groovyFolderPath = path.resolve(project_dir, 'Groovy');
-    
-    try {
-        console.log(`Copying contents from ${tempClonePath} to ${groovyFolderPath}...`);
-        fs.copySync(tempClonePath, groovyFolderPath, { overwrite: true });
-        console.log(`Contents copied to ${groovyFolderPath} successfully.`);
-    } catch (error) {
-        console.error("Failed to copy to Groovy folder:", error.message || error);
-    }
-}
+// Main function to clone and move repos
+module.exports = () => {
+  const comfyRunnerDir = path.resolve(__dirname, project_dir, 'comfy_runner');
+  const comfyUIDir = path.resolve(__dirname, project_dir, 'ComfyUI');
 
-// Ensure ComfyUI is ready before starting the app
-function startComfyUI() {
-    try {
-        console.log("Starting ComfyUI...");
-        execSync(`python ${path.resolve(project_dir, 'ComfyUI', 'main.py')}`, { stdio: 'inherit' });
-    } catch (error) {
-        console.error("Failed to start ComfyUI:", error.message || error);
-    }
-}
+  // Create a temp directory for cloning
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'clone-'));
 
-// Run app.py after ComfyUI is started
-function startApp() {
-    try {
-        console.log("Running app.py...");
-        execSync(`python ${path.resolve(project_dir, 'app.py')}`, { stdio: 'inherit' });
-    } catch (error) {
-        console.error("Failed to run app.py:", error.message || error);
-    }
-}
+  // Check if comfy_runner exists, if not clone it and move it
+  if (!directoryExists(comfyRunnerDir)) {
+    console.log('Cloning comfy_runner repository...');
+    execSync(`git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner ${tempDir}/comfy_runner`);
+    moveContents(`${tempDir}/comfy_runner`, comfyRunnerDir);
+  } else {
+    console.log('comfy_runner already exists. Skipping cloning.');
+  }
 
-// Main function to handle the entire process
-module.exports = async () => {
-    try {
-        console.log("Initializing setup...");
+  // Check if ComfyUI exists, if not clone it and move it
+  if (!directoryExists(comfyUIDir)) {
+    console.log('Cloning ComfyUI repository...');
+    execSync(`git clone https://github.com/comfyanonymous/ComfyUI.git ${tempDir}/ComfyUI`);
+    moveContents(`${tempDir}/ComfyUI`, comfyUIDir);
+  } else {
+    console.log('ComfyUI already exists. Skipping cloning.');
+  }
 
-        // Clone ComfyUI and Comfy_Runner to temporary locations
-        cloneRepoTemp('https://github.com/comfyanonymous/ComfyUI.git', 'temp_comfyui_clone');
-        cloneRepoTemp('https://github.com/piyushK52/comfy_runner.git', 'temp_comfyrunner_clone');
+  // Clean up the temp directory
+  fs.rmdirSync(tempDir, { recursive: true });
 
-        // Copy both repositories' contents into the Groovy folder
-        copyToGroovyFolder('temp_comfyui_clone');
-        copyToGroovyFolder('temp_comfyrunner_clone');
+  const config = {
+    daemon: true,
+    run: [
+      {
+        method: "shell.run",
+        params: {
+          venv: path.resolve(__dirname, project_dir, virtual_env),
+          message: "python app.py",
+          on: [{ event: "/http:\/\/[0-9.:]+/", done: true }],
+        },
+      },
+    ],
+  };
 
-        // Start ComfyUI and then app.py
-        startComfyUI();
-        console.log("ComfyUI started successfully.");
-        startApp();
-        console.log("app.py started successfully.");
-    } catch (error) {
-        console.error("An error occurred during initialization:", error.message || error);
-    }
+  return config;
 };
