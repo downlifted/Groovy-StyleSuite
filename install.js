@@ -42,14 +42,6 @@ module.exports = async (kernel) => {
       {
         method: "shell.run",
         params: {
-          message: [
-            `git clone --depth 1 -b main https://github.com/banodoco/Dough.git ${project_dir}`,
-          ],
-        },
-      },
-      {
-        method: "shell.run",
-        params: {
           path: project_dir,
           message: [
             "git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner",
