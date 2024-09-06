@@ -38,7 +38,6 @@ function removeIfExists(dirPath) {
 
 // Clone repositories to a cache directory and move them
 function getGitCommands() {
-    // Use the project directory dynamically instead of hardcoding paths
     const comfyCacheDir = path.join(project_dir, 'cache');
     const comfyRunnerDir = path.join(comfyCacheDir, 'comfy_runner');
     const comfyUIDir = path.join(comfyCacheDir, 'ComfyUI');
@@ -50,8 +49,8 @@ function getGitCommands() {
     return [
         `git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner ${comfyRunnerDir}`,
         `git clone https://github.com/comfyanonymous/ComfyUI.git ${comfyUIDir}`,
-        `xcopy /E /Y ${comfyRunnerDir} ${path.resolve(__dirname, project_dir, 'comfy_runner')}`,
-        `xcopy /E /Y ${comfyUIDir} ${path.resolve(__dirname, project_dir, 'ComfyUI')}`
+        `xcopy /E /Y /I ${comfyRunnerDir} ${path.resolve(__dirname, project_dir, 'comfy_runner')}`,
+        `xcopy /E /Y /I ${comfyUIDir} ${path.resolve(__dirname, project_dir, 'ComfyUI')}`
     ];
 }
 
