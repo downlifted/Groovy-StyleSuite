@@ -2,37 +2,35 @@ const { virtual_env, project_dir } = require("./constants");
 const path = require('path');
 
 function getInstallCommand(kernel) {
-  const { platform, gpu } = kernel;
+  const { platform } = kernel; // Removed 'gpu' since it's unused
 
   function combineLists(list1, list2) {
     return [...list1, ...list2];
   }
 
-  project_requirements = [
+  let project_requirements = [
     `pip install -r ${path.resolve('requirements.txt')}`,
     `pip install -r ${path.resolve('comfy_runner', 'requirements.txt')}`,
     `pip install -r ${path.resolve('ComfyUI', 'requirements.txt')}`,
   ];
 
-  // only handling linux and win32 for now
-  if (platform == "linux") {
-    cmd_list = []; // pinokio by default uses py3.10
+  if (platform === "linux") {
+    let cmd_list = []; // Assuming py3.10 is set by default in Pinokio
     return combineLists(cmd_list, project_requirements);
   }
 
-  if (platform == "win32") {
-    cmd_list = [
+  if (platform === "win32") {
+    let cmd_list = [
       "python.exe -m pip install --upgrade pip",
       "pip install websocket",
       "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
     ];
-
     return combineLists(cmd_list, project_requirements);
   }
 
-  // only installing the base app for the mac
+  // For macOS
   return [
-    `pip install -r requirements.txt)}`,
+    `pip install -r requirements.txt`,
   ];
 }
 
@@ -62,7 +60,7 @@ module.exports = async (kernel) => {
         params: {
           path: project_dir,
           venv: virtual_env,
-          message: getInstallCommand(kernel)
+          message: getInstallCommand(kernel),
         },
       },
       {
@@ -84,14 +82,14 @@ module.exports = async (kernel) => {
             "embeddings": `${project_dir}/ComfyUI/models/embeddings`,
             "loras": `${project_dir}/ComfyUI/models/loras`,
             "upscale_models": `${project_dir}/ComfyUI/models/upscale_models`,
-            "vae": `${project_dir}/ComfyUI/models/vae`
+            "vae": `${project_dir}/ComfyUI/models/vae`,
           },
           peers: [
             "https://github.com/cocktailpeanutlabs/automatic1111.git",
             "https://github.com/cocktailpeanutlabs/fooocus.git",
-            "https://github.com/cocktailpeanutlabs/forge.git"
-          ]
-        }
+            "https://github.com/cocktailpeanutlabs/forge.git",
+          ],
+        },
       },
     ],
   };
