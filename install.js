@@ -88,7 +88,7 @@ module.exports = async (kernel) => {
                 method: "fs.copy",
                 params: {
                     // Assuming .env.sample is located one level above the current __dirname
-                    src: path.resolve(__dirname, '../.env.sample'),
+                    src: path.resolve(__dirname, '.env.sample'),
                     dest: path.join(__dirname, '.env'),
                 },
             },
