@@ -28,16 +28,30 @@ function ensureDirectories() {
     });
 }
 
+// Remove directory if it exists
+function removeIfExists(dirPath) {
+    if (fs.existsSync(dirPath)) {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+        console.log(`Removed existing directory: ${dirPath}`);
+    }
+}
+
 // Clone repositories to a cache directory and move them
 function getGitCommands() {
     // Use the project directory dynamically instead of hardcoding paths
     const comfyCacheDir = path.join(project_dir, 'cache');
+    const comfyRunnerDir = path.join(comfyCacheDir, 'comfy_runner');
+    const comfyUIDir = path.join(comfyCacheDir, 'ComfyUI');
+    
+    // Remove existing directories if they already exist
+    removeIfExists(comfyRunnerDir);
+    removeIfExists(comfyUIDir);
     
     return [
-        `git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner ${comfyCacheDir}/comfy_runner`,
-        `git clone https://github.com/comfyanonymous/ComfyUI.git ${comfyCacheDir}/ComfyUI`,
-        `xcopy /E /Y ${comfyCacheDir}/comfy_runner ${path.resolve(__dirname, project_dir, 'comfy_runner')}`,
-        `xcopy /E /Y ${comfyCacheDir}/ComfyUI ${path.resolve(__dirname, project_dir, 'ComfyUI')}`
+        `git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner ${comfyRunnerDir}`,
+        `git clone https://github.com/comfyanonymous/ComfyUI.git ${comfyUIDir}`,
+        `xcopy /E /Y ${comfyRunnerDir} ${path.resolve(__dirname, project_dir, 'comfy_runner')}`,
+        `xcopy /E /Y ${comfyUIDir} ${path.resolve(__dirname, project_dir, 'ComfyUI')}`
     ];
 }
 
