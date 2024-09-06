@@ -41,25 +41,41 @@ function getGitCommands() {
     ];
 }
 
-// Get installation commands based on the platform
-function getInstallCommand(kernel) {
+// Dynamically determine the correct version of torch based on the platform and GPU
+function getTorchInstallCommand(kernel) {
     const { platform, gpu } = kernel;
     
+    if (platform === "win32") {
+        if (gpu === "nvidia") {
+            return "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118";
+        } else if (gpu === "amd") {
+            return "pip install torch-directml torchaudio torchvision numpy";
+        } else {
+            return "pip install torch torchvision torchaudio";
+        }
+    } else if (platform === "linux") {
+        return "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118";
+    }
+    return "pip install torch torchvision torchaudio";
+}
+
+// Get installation commands based on the platform
+function getInstallCommand(kernel) {
+    const { platform } = kernel;
+
     project_requirements = [
         `pip install -r ${path.resolve(__dirname, 'requirements.txt')}`,
         `pip install -r ${path.resolve(__dirname, 'runnerrequirements.txt')}`,
         `pip install -r ${path.resolve(__dirname, 'groovyrequirements.txt')}`
     ];
 
-    if (platform === "win32") {
+    if (platform === "win32" || platform === "linux") {
         return [
             "python.exe -m pip install --upgrade pip",
             "pip install websocket",
-            "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
+            getTorchInstallCommand(kernel),  // Dynamically install the correct torch version
             ...project_requirements
         ];
-    } else if (platform === "linux") {
-        return project_requirements;
     }
 
     return [
@@ -69,6 +85,8 @@ function getInstallCommand(kernel) {
 
 // Main installation process
 module.exports = async (kernel) => {
+    ensureDirectories();  // Ensure the necessary directories are created first
+
     const config = {
         run: [
             {
@@ -88,8 +106,8 @@ module.exports = async (kernel) => {
             {
                 method: "fs.copy",
                 params: {
-                    src: `/.env.sample`,
-                    dest: `/.env`,
+                    src: `${project_dir}/.env.sample`,
+                    dest: `${project_dir}/.env`,
                 },
             },
             {
@@ -116,6 +134,5 @@ module.exports = async (kernel) => {
         ]
     };
     
-    ensureDirectories();  // Ensure the necessary directories are created first
     return config;
 };
