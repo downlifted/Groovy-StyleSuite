@@ -46,9 +46,9 @@ function getInstallCommand(kernel) {
     const { platform, gpu } = kernel;
     
     project_requirements = [
-        `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
-        `pip install -r ${path.resolve(__dirname, project_dir, 'comfy_runner', 'requirements.txt')}`,
-        `pip install -r ${path.resolve(__dirname, project_dir, 'ComfyUI', 'requirements.txt')}`
+        `pip install -r ${path.resolve(__dirname, 'requirements.txt')}`,
+        `pip install -r ${path.resolve(__dirname, 'runnerrequirements.txt')}`,
+        `pip install -r ${path.resolve(__dirname, 'groovyrequirements.txt')}`
     ];
 
     if (platform === "win32") {
@@ -63,7 +63,7 @@ function getInstallCommand(kernel) {
     }
 
     return [
-        `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`
+        `pip install -r ${path.resolve(__dirname, 'requirements.txt')}`
     ];
 }
 
@@ -88,8 +88,8 @@ module.exports = async (kernel) => {
             {
                 method: "fs.copy",
                 params: {
-                    src: `${project_dir}/.env.sample`,
-                    dest: `${project_dir}/.env`,
+                    src: `/.env.sample`,
+                    dest: `/.env`,
                 },
             },
             {
