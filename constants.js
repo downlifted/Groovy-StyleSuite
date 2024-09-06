@@ -1,4 +1,4 @@
 module.exports = {
-	virtual_env : "dough-env",
-	project_dir : "Dough"
+	virtual_env : "groovy-env",
+	project_dir : "Groovy"
 }
