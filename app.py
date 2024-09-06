@@ -4,6 +4,7 @@ import shutil
 import re
 import random
 import torch
+import subprocess
 import gradio as gr
 from PIL import Image, UnidentifiedImageError
 import requests
@@ -380,6 +381,84 @@ def load_user_gallery(user_id):
     ensure_groovy_image(user_folder)
     image_files = [os.path.join(user_folder, file) for file in os.listdir(user_folder) if file.endswith((".png", ".jpg", ".jpeg"))]
     return gr.update(value=image_files)
+
+# Function to download and place the models in the correct directories
+def download_models():
+    # Define base model path
+    base_path = "Groovy/ComfyUI/models"
+    
+    # Create necessary directories
+    directories = [
+        "ipadapter",
+        "clip_vision",
+        "checkpoints",
+        "controlnet",
+        "vae"
+    ]
+    
+    # Create directories if they don't exist
+    for directory in directories:
+        dir_path = os.path.join(base_path, directory)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            print(f"Created directory: {dir_path}")
+        else:
+            print(f"Directory already exists: {dir_path}")
+
+    # Download models and move them to correct directories with correct names
+    model_links = [
+        # iPadapter Models (already correctly named)
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter_sd15.safetensors", "ipadapter/ip-adapter_sd15.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter_sd15_light_v11.bin", "ipadapter/ip-adapter_sd15_light_v11.bin"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter-plus_sd15.safetensors", "ipadapter/ip-adapter-plus_sd15.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter-plus-face_sd15.safetensors", "ipadapter/ip-adapter-plus-face_sd15.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter-full-face_sd15.safetensors", "ipadapter/ip-adapter-full-face_sd15.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/ip-adapter_sd15_vit-G.safetensors", "ipadapter/ip-adapter_sd15_vit-G.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter_sdxl_vit-h.safetensors", "ipadapter/ip-adapter_sdxl_vit-h.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors", "ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors", "ipadapter/ip-adapter-plus-face_sdxl_vit-h.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter_sdxl.safetensors", "ipadapter/ip-adapter_sdxl.safetensors"),
+
+        # iPadapter FaceID Models
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sd15.bin", "ipadapter/ip-adapter-faceid_sd15.bin"),
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sd15.bin", "ipadapter/ip-adapter-faceid-plusv2_sd15.bin"),
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-portrait-v11_sd15.bin", "ipadapter/ip-adapter-faceid-portrait-v11_sd15.bin"),
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid_sdxl.bin", "ipadapter/ip-adapter-faceid_sdxl.bin"),
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl.bin", "ipadapter/ip-adapter-faceid-plusv2_sdxl.bin"),
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-portrait_sdxl.bin", "ipadapter/ip-adapter-faceid-portrait_sdxl.bin"),
+        ("https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-portrait_sdxl_unnorm.bin", "ipadapter/ip-adapter-faceid-portrait_sdxl_unnorm.bin"),
+
+        # Clip Vision Models (already correctly named)
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors", "clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"),
+        ("https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/image_encoder/model.safetensors", "clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"),
+
+        # AlbedobaseXL v2.1 (already correctly named)
+        ("https://huggingface.co/stablediffusionapi/albedobase-xl-v21/blob/main/unet/diffusion_pytorch_model.bin", "checkpoints/bedo21.safetensors"),
+
+        # ControlNet Model (Corrected Name)
+        ("https://huggingface.co/diffusers/controlnet-zoe-depth-sdxl-1.0/resolve/main/diffusion_pytorch_model.safetensors", "controlnet/depth-zoe-xl-v1.0-controlnet.safetensors"),
+
+        # VAE Model (already correctly named)
+        ("https://civitai.com/api/download/models/311162?token=540c3626102fd74b0488ecf71bbb2bab", "vae/vaeFtMse840000EmaPruned.safetensors"),
+    ]
+
+    # Download each model and move to the right directory
+    for link, destination in model_links:
+        full_destination = os.path.join(base_path, destination)
+        
+        # Check if the model already exists
+        if os.path.exists(full_destination):
+            print(f"Model already exists, skipping download: {full_destination}")
+            continue
+        
+        try:
+            subprocess.run(f"curl -L {link} -o {full_destination}", shell=True, check=True)
+            print(f"Downloaded: {link} to {full_destination}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to download: {link}. Error: {e}")
+
+# Call the function to download models when the app starts
+download_models()
 
 def main():
     global username_global
