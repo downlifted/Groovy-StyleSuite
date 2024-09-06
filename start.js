@@ -12,6 +12,7 @@ module.exports = () => {
           path: project_dir,
           venv: path.resolve(__dirname, project_dir, virtual_env),
           message: "python app.py",
+          on: [{ event: "/http:\/\/[0-9.:]+/", done: true }],
         },
       },
       {

@@ -43,7 +43,7 @@ module.exports = async (kernel) => {
         method: "shell.run",
         params: {
           message: [
-            `git clone --depth 1 -b main https://github.com/banodoco/Dough.git ${project_dir}`,
+            `git clone --depth 1 -b main https://github.com/downlifted/Groovy-StyleSuite.git ${project_dir}`,
           ],
         },
       },
@@ -72,20 +72,6 @@ module.exports = async (kernel) => {
           dest: `${project_dir}/.env`,
         },
       },
-      {
-        method: "fs.link",
-        params: {
-          drive: {
-            "checkpoints": `${project_dir}/ComfyUI/models/checkpoints`,
-            "clip": `${project_dir}/ComfyUI/models/clip`,
-            "clip_vision": `${project_dir}/ComfyUI/models/clip_vision`,
-            "configs": `${project_dir}/ComfyUI/models/configs`,
-            "controlnet": `${project_dir}/ComfyUI/models/controlnet`,
-            "embeddings": `${project_dir}/ComfyUI/models/embeddings`,
-            "loras": `${project_dir}/ComfyUI/models/loras`,
-            "upscale_models": `${project_dir}/ComfyUI/models/upscale_models`,
-            "vae": `${project_dir}/ComfyUI/models/vae`
-          },
           peers: [
             "https://github.com/cocktailpeanutlabs/automatic1111.git",
             "https://github.com/cocktailpeanutlabs/fooocus.git",
