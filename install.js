@@ -1,7 +1,7 @@
 const { virtual_env, project_dir } = require("./constants");
 const path = require('path');
-const { execSync } = require('child_process');
 
+// Install dependencies based on platform
 function getInstallCommand(kernel) {
   const { platform, gpu } = kernel;
 
@@ -9,17 +9,19 @@ function getInstallCommand(kernel) {
     return [...list1, ...list2];
   }
 
-  project_requirements = [
+  const project_requirements = [
+    `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
     `pip install -r ${path.resolve(__dirname, project_dir, 'comfy_runner', 'requirements.txt')}`,
+    `pip install -r ${path.resolve(__dirname, project_dir, 'ComfyUI', 'requirements.txt')}`,
   ];
 
   if (platform === "linux") {
-    cmd_list = [];
+    const cmd_list = []; // Defaults for Linux
     return combineLists(cmd_list, project_requirements);
   }
 
   if (platform === "win32") {
-    cmd_list = [
+    const cmd_list = [
       "python.exe -m pip install --upgrade pip",
       "pip install websocket",
       "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
@@ -27,6 +29,7 @@ function getInstallCommand(kernel) {
     return combineLists(cmd_list, project_requirements);
   }
 
+  // Handle macOS
   return [
     `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
   ];
@@ -39,7 +42,7 @@ module.exports = async (kernel) => {
         method: "shell.run",
         params: {
           message: [
-            `git clone --depth 1 -b main https://github.com/downlifted/Groovy-StyleSuite.git ${project_dir}`,
+            `git clone --depth 1 -b main https://github.com/banodoco/Dough.git ${project_dir}`,
           ],
         },
       },
@@ -48,8 +51,9 @@ module.exports = async (kernel) => {
         params: {
           path: project_dir,
           message: [
+            // Clone the required repositories
             "git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner",
-            "git clone https://github.com/comfyanonymous/ComfyUI.git",  // Ensuring ComfyUI is downloaded
+            "git clone https://github.com/comfyanonymous/ComfyUI.git",
           ],
         },
       },
@@ -58,16 +62,21 @@ module.exports = async (kernel) => {
         params: {
           path: project_dir,
           venv: virtual_env,
-          message: getInstallCommand(kernel), // Ensuring dependencies are installed
+          message: getInstallCommand(kernel), // Install dependencies
         },
       },
       {
-        method: "fs.copy",
+        method: "shell.run",
         params: {
-          src: `${project_dir}/.env.sample`,
-          dest: `${project_dir}/.env`,
+          path: project_dir,
+          message: [
+            // Create the environment file
+            `cp ${project_dir}/.env.sample ${project_dir}/.env`,
+          ],
         },
       },
     ],
   };
+
   return config;
+};
