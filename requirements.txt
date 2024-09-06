@@ -116,7 +116,7 @@ matplotlib==3.9.0
 mccabe==0.7.0
 mdit-py-plugins==0.4.1
 mdurl==0.1.2
-mediapipe==0.10.14
+mediapipe==0.9.0
 mkl==2021.4.0
 ml-dtypes==0.4.0
 ml_collections==0.1.1
@@ -155,7 +155,7 @@ pooch==1.8.2
 pre-commit==3.7.1
 prettytable==3.10.0
 proglog==0.1.10
-protobuf==5.28.0
+protobuf>=4.25.3,<5
 psutil==6.0.0
 pyarrow==15.0.2
 PyAutoGUI==0.9.54
