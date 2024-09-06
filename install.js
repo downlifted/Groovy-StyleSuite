@@ -9,9 +9,9 @@ function getInstallCommand(kernel) {
   }
 
   project_requirements = [
-    `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
-    `pip install -r ${path.resolve(__dirname, project_dir, 'comfy_runner', 'requirements.txt')}`,
-    `pip install -r ${path.resolve(__dirname, project_dir, 'ComfyUI', 'requirements.txt')}`,
+    `pip install -r ${path.resolve('requirements.txt')}`,
+    `pip install -r ${path.resolve('comfy_runner', 'requirements.txt')}`,
+    `pip install -r ${path.resolve('ComfyUI', 'requirements.txt')}`,
   ];
 
   // only handling linux and win32 for now
@@ -32,7 +32,7 @@ function getInstallCommand(kernel) {
 
   // only installing the base app for the mac
   return [
-    `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
+    `pip install -r requirements.txt)}`,
   ];
 }
 
