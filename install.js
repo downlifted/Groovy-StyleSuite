@@ -1,62 +1,99 @@
-const fs = require('fs');
+const { virtual_env, project_dir } = require("./constants");
 const path = require('path');
 
-module.exports = {
-  run: [
-    // Clone the main repository
-    {
-      method: "shell.run",
-      params: {
-        message: [
-          "git clone https://github.com/downlifted/Groovy-StyleSuite app",
-        ]
-      }
-    },
-    // Step for torch, if your project uses torch
-    {
-      method: "script.start",
-      params: {
-        uri: "torch.js",
+function getInstallCommand(kernel) {
+  const { platform, gpu } = kernel;
+
+  function combineLists(list1, list2) {
+    return [...list1, ...list2];
+  }
+
+  project_requirements = [
+    `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
+    `pip install -r ${path.resolve(__dirname, project_dir, 'comfy_runner', 'requirements.txt')}`,
+    `pip install -r ${path.resolve(__dirname, project_dir, 'ComfyUI', 'requirements.txt')}`,
+  ];
+
+  // only handling linux and win32 for now
+  if (platform == "linux") {
+    cmd_list = []; // pinokio by default uses py3.10
+    return combineLists(cmd_list, project_requirements);
+  }
+
+  if (platform == "win32") {
+    cmd_list = [
+      "python.exe -m pip install --upgrade pip",
+      "pip install websocket",
+      "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
+    ];
+
+    return combineLists(cmd_list, project_requirements);
+  }
+
+  // only installing the base app for the mac
+  return [
+    `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
+  ];
+}
+
+module.exports = async (kernel) => {
+  const config = {
+    run: [
+      {
+        method: "shell.run",
         params: {
-          venv: "env",                // Customize the venv folder path if needed
-          path: "app",                // Customize the path to start the shell from
-          // xformers: true   // Uncomment if your project requires xformers
+          message: [
+            `git clone --depth 1 -b main https://github.com/downlifted/Groovy-StyleSuite.git ${project_dir}`,
+          ],
+        },
+      },
+      {
+        method: "shell.run",
+        params: {
+          path: project_dir,
+          message: [
+            "git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner",
+            "git clone https://github.com/comfyanonymous/ComfyUI.git",
+          ],
+        },
+      },
+      {
+        method: "shell.run",
+        params: {
+          path: project_dir,
+          venv: virtual_env,
+          message: getInstallCommand(kernel)
+        },
+      },
+      {
+        method: "fs.copy",
+        params: {
+          src: `${project_dir}/.env.sample`,
+          dest: `${project_dir}/.env`,
+        },
+      },
+      {
+        method: "fs.link",
+        params: {
+          drive: {
+            "checkpoints": `${project_dir}/ComfyUI/models/checkpoints`,
+            "clip": `${project_dir}/ComfyUI/models/clip`,
+            "clip_vision": `${project_dir}/ComfyUI/models/clip_vision`,
+            "configs": `${project_dir}/ComfyUI/models/configs`,
+            "controlnet": `${project_dir}/ComfyUI/models/controlnet`,
+            "embeddings": `${project_dir}/ComfyUI/models/embeddings`,
+            "loras": `${project_dir}/ComfyUI/models/loras`,
+            "upscale_models": `${project_dir}/ComfyUI/models/upscale_models`,
+            "vae": `${project_dir}/ComfyUI/models/vae`
+          },
+          peers: [
+            "https://github.com/cocktailpeanutlabs/automatic1111.git",
+            "https://github.com/cocktailpeanutlabs/fooocus.git",
+            "https://github.com/cocktailpeanutlabs/forge.git"
+          ]
         }
-      }
-    },
-    // Ensure directories comfy_runner and ComfyUI exist
-    {
-      method: "shell.run",
-      params: {
-        venv: "env",
-        path: "app",  // Make sure this is the base app directory
-        message: [
-          // Ensure comfy_runner and ComfyUI directories are created
-          `mkdir -p ${path.resolve('app', 'comfy_runner')}`,
-          `mkdir -p ${path.resolve('app', 'ComfyUI')}`
-        ]
-      }
-    },
-    // Install requirements for the main project and subdirectories
-    {
-      method: "shell.run",
-      params: {
-        venv: "env",
-        path: "app",
-        message: [
-          "pip install gradio devicetorch", // Install initial dependencies
-          `pip install -r ${path.resolve('app', 'requirements.txt')}`, // Install main project requirements
-          `pip install -r ${path.resolve('app', 'comfy_runner', 'requirements.txt')}`, // Install comfy_runner requirements
-          `pip install -r ${path.resolve('app', 'ComfyUI', 'requirements.txt')}`, // Install ComfyUI requirements
-        ]
-      }
-    },
-    // Optional: Linking virtual environment or other resources
-    {
-      method: "fs.link",
-      params: {
-        venv: "app/env"
-      }
-    }
-  ]
+      },
+    ],
+  };
+  return config;
 };
