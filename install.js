@@ -1,50 +1,73 @@
+const { virtual_env, project_dir } = require("./constants");
 const path = require('path');
 const { execSync } = require('child_process');
-const fs = require('fs-extra');  // fs-extra allows copying with merge
-const { project_dir } = require('./constants');
 
-// Function to check if the folder already has files (meaning it's cloned)
-function isRepoCloned(folderPath) {
-    try {
-        const files = fs.readdirSync(folderPath);
-        return files.length > 0;
-    } catch (error) {
-        return false; // If folder doesn't exist or an error occurs, assume it's not cloned
-    }
+function getInstallCommand(kernel) {
+  const { platform, gpu } = kernel;
+
+  function combineLists(list1, list2) {
+    return [...list1, ...list2];
+  }
+
+  project_requirements = [
+    `pip install -r ${path.resolve(__dirname, project_dir, 'comfy_runner', 'requirements.txt')}`,
+  ];
+
+  if (platform === "linux") {
+    cmd_list = [];
+    return combineLists(cmd_list, project_requirements);
+  }
+
+  if (platform === "win32") {
+    cmd_list = [
+      "python.exe -m pip install --upgrade pip",
+      "pip install websocket",
+      "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
+    ];
+    return combineLists(cmd_list, project_requirements);
+  }
+
+  return [
+    `pip install -r ${path.resolve(__dirname, project_dir, 'requirements.txt')}`,
+  ];
 }
 
-// Clone repository to a separate temporary folder
-function cloneRepoTemp(repoUrl, tempFolder) {
-    const tempClonePath = path.resolve(project_dir, tempFolder);
-    
-    if (!isRepoCloned(tempClonePath)) {
-        try {
-            console.log(`Cloning ${repoUrl} to temp location...`);
-            execSync(`git clone ${repoUrl} ${tempClonePath}`, { stdio: 'inherit' });
-            console.log(`Repository ${repoUrl} cloned successfully to ${tempClonePath}.`);
-        } catch (error) {
-            console.error(`Failed to clone ${repoUrl}:`, error.message || error);
-        }
-    } else {
-        console.log(`Temporary folder ${tempClonePath} already contains files. Skipping clone.`);
-    }
-}
-
-// Copy contents of the cloned repo to the existing Groovy folder
-function copyToGroovyFolder(tempFolder) {
-    const tempClonePath = path.resolve(project_dir, tempFolder);
-    const groovyFolderPath = path.resolve(project_dir, 'Groovy');
-    
-    try {
-        console.log(`Copying contents from ${tempClonePath} to ${groovyFolderPath}...`);
-        fs.copySync(tempClonePath, groovyFolderPath, { overwrite: false, errorOnExist: false });
-        console.log(`Contents copied to ${groovyFolderPath} successfully.`);
-    } catch (error) {
-        console.error("Failed to copy to Groovy folder:", error.message || error);
-    }
-}
-
-// Ensure ComfyUI is ready before starting the app
-function startComfyUI() {
-    try {
-        console.log("Starting ComfyUI
+module.exports = async (kernel) => {
+  const config = {
+    run: [
+      {
+        method: "shell.run",
+        params: {
+          message: [
+            `git clone --depth 1 -b main https://github.com/downlifted/Groovy-StyleSuite.git ${project_dir}`,
+          ],
+        },
+      },
+      {
+        method: "shell.run",
+        params: {
+          path: project_dir,
+          message: [
+            "git clone --depth 1 -b main https://github.com/piyushK52/comfy_runner",
+            "git clone https://github.com/comfyanonymous/ComfyUI.git",  // Ensuring ComfyUI is downloaded
+          ],
+        },
+      },
+      {
+        method: "shell.run",
+        params: {
+          path: project_dir,
+          venv: virtual_env,
+          message: getInstallCommand(kernel), // Ensuring dependencies are installed
+        },
+      },
+      {
+        method: "fs.copy",
+        params: {
+          src: `${project_dir}/.env.sample`,
+          dest: `${project_dir}/.env`,
+        },
+      },
+    ],
+  };
+  return config;
