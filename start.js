@@ -6,21 +6,12 @@ module.exports = () => {
   const config = {
     daemon: true,
     run: [
-    	{
-        method: "shell.run",
-        params: {
-          venv: path.resolve(__dirname, project_dir, virtual_env),
-          message: "python st_fix.py",
-          on: [{ event: "/http:\/\/[0-9.:]+/", done: true }],
-        },
-      },
       {
         method: "shell.run",
         params: {
           path: project_dir,
           venv: path.resolve(__dirname, project_dir, virtual_env),
           message: "python app.py",
-          on: [{ event: "/http:\/\/[0-9.:]+/", done: true }],
         },
       },
       {
