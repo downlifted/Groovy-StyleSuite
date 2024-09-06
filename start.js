@@ -11,8 +11,10 @@ module.exports = () => {
         params: {
           path: project_dir,
           venv: path.resolve(__dirname, project_dir, virtual_env),
-          message: "pip install  torch",
-          message: "python app.py",
+          message: [
+            "pip install torch", // Install PyTorch if not already installed
+            "python ./ComfyUI/main.py", // Launch ComfyUI instead of app.py
+          ],
           on: [{ event: "/http:\/\/[0-9.:]+/", done: true }],
         },
       },
