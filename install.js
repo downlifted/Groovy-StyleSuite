@@ -44,17 +44,21 @@ function getGitCommands() {
 function getInstallCommand(kernel) {
     const { platform } = kernel;
     
+    // Use Python 3.10 if available
+    const pythonVersion = "python3.10";  // Adjust this to the version you want, or use a system call to find the version dynamically
+    
     const project_requirements = [
-        `pip install -r ${path.join(__dirname, 'requirements.txt')}`,
-        `pip install -r ${path.join(__dirname, 'runnerrequirements.txt')}`,  // runnerrequirements.txt added
-        `pip install -r ${path.join(__dirname, 'groovyrequirements.txt')}`   // groovyrequirements.txt added
+        `${pythonVersion} -m pip install --upgrade pip`,
+        `${pythonVersion} -m pip install -r ${path.join(__dirname, 'requirements.txt')}`,
+        `${pythonVersion} -m pip install -r ${path.join(__dirname, 'runnerrequirements.txt')}`,
+        `${pythonVersion} -m pip install -r ${path.join(__dirname, 'groovyrequirements.txt')}`
     ];
 
     if (platform === "win32") {
         return [
-            "python.exe -m pip install --upgrade pip",
-            "pip install websocket",
-            "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118",
+            `${pythonVersion} -m pip install --upgrade pip`,
+            `${pythonVersion} -m pip install websocket`,
+            `${pythonVersion} -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`,
             ...project_requirements
         ];
     } else if (platform === "linux") {
@@ -62,9 +66,10 @@ function getInstallCommand(kernel) {
     }
 
     return [
-        `pip install -r ${path.join(__dirname, 'requirements.txt')}`
+        `${pythonVersion} -m pip install -r ${path.join(__dirname, 'requirements.txt')}`
     ];
 }
+
 
 // Main installation process
 module.exports = async (kernel) => {
