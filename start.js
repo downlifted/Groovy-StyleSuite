@@ -3,11 +3,21 @@ const { execSync } = require('child_process');
 const fs = require('fs-extra');  // fs-extra allows copying with merge
 const { project_dir } = require('./constants');
 
-// Clone repository to a temporary location
+// Function to check if the folder already has files (meaning it's cloned)
+function isRepoCloned(folderPath) {
+    try {
+        const files = fs.readdirSync(folderPath);
+        return files.length > 0;
+    } catch (error) {
+        return false; // If folder doesn't exist or an error occurs, assume it's not cloned
+    }
+}
+
+// Clone repository to a temporary location if not already cloned
 function cloneRepoTemp(repoUrl, tempFolder) {
     const tempClonePath = path.resolve(project_dir, tempFolder);
     
-    if (!fs.existsSync(tempClonePath)) {
+    if (!isRepoCloned(tempClonePath)) {
         try {
             console.log(`Cloning ${repoUrl} to temp location...`);
             execSync(`git clone ${repoUrl} ${tempClonePath}`, { stdio: 'inherit' });
@@ -16,7 +26,7 @@ function cloneRepoTemp(repoUrl, tempFolder) {
             console.error(`Failed to clone ${repoUrl}:`, error.message || error);
         }
     } else {
-        console.log(`Temporary folder ${tempClonePath} already exists. Skipping clone.`);
+        console.log(`Temporary folder ${tempClonePath} already contains files. Skipping clone.`);
     }
 }
 
