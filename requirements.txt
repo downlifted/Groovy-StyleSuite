@@ -1,4 +1,4 @@
-transformers==4.39.2
+transformers==4.38.0
 absl-py==2.1.0
 accelerate==0.28.0
 aiofiles==23.2.1
@@ -260,4 +260,3 @@ wrapt==1.16.0
 wsproto==1.2.0
 yarl==1.9.4
 zipp==3.19.2
-transformers==4.39.2
